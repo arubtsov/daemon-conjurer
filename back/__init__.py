@@ -1,19 +1,45 @@
-from flask import Flask, request
+import os
 import json
+from dotenv import load_dotenv
+from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
+
+load_dotenv()
 
 app = Flask(__name__)
-events = []
+
+app.config.from_object(os.environ['APP_SETTINGS'])
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+
+from back.models import Event
 
 @app.route('/hooks/', methods=['POST'])
-def foo():
-   data = json.loads(request.data)
-   events.append(data)
-   print("New commit info: {}".format(data))
-   return "OK"
+def on_github_event():
+    try:
+        event = Event(json_string=request.data)
+
+        db.session.add(event)
+        db.session.commit()
+
+        return "Event added. event id={}".format(event.id)
+    except Exception as e:
+        print(str(e))
+        return str(e)
+
 
 @app.route('/', methods=['GET'])
 def show():
-    return "{}".format(events)
+    try:
+        events = Event.query.all()
+
+        return jsonify([ev.serialize() for ev in events])
+
+    except Exception as e:
+        print(str(e))
+        return str(e)
+
 
 if __name__ == '__main__':
-   app.run()
+    app.run()
