@@ -18,12 +18,13 @@ from back.models import Event
 @app.route('/hooks/', methods=['POST'])
 def on_github_event():
     try:
-        event = Event(json_string=request.data)
+        data = json.loads(request.data)
+        event = Event(json_string=data)
 
         db.session.add(event)
         db.session.commit()
 
-        return "Event added. event id={}".format(event.id)
+        return "Event added. event id={}".format(data.id)
     except Exception as e:
         print(str(e))
         return str(e)
